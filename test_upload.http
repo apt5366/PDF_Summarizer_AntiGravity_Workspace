@@ -1,0 +1,19 @@
+### Upload PDF
+POST http://127.0.0.1:8000/upload
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+--boundary--
+
+### Summarize Text
+POST http://127.0.0.1:8000/summarize
+Content-Type: application/json
+
+{
+  "text": "This is a long legal document about a merger between Company A and Company B...",
+  "priorities": ["Risk Factors", "Financial Terms"]
+}
