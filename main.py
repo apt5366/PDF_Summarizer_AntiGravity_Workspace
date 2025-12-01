@@ -1,47 +1,67 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
-from utils.pdf_utils import extract_text_from_pdf
-from classifier import classify_document
-from summarizer import summarize_document
+import os
+import uuid
 
-app = FastAPI(title="DocScanner Backend")
+from utils.pdf_utils import extract_text_from_pdf
+from utils.classifier import classify_document
+from utils.summarizer import summarize_document
+
+app = FastAPI()
+
+# Enable local dev from v0
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 class SummarizeRequest(BaseModel):
     text: str
-    priorities: Optional[List[str]] = None
+    priorities: list[str] = []
+    format: str = "bullets"
+    depth: str = "quick"
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF allowed.")
-    
-    try:
-        content = await file.read()
-        text = extract_text_from_pdf(content)
-        
-        if not text:
-            raise HTTPException(status_code=400, detail="Could not extract text from PDF.")
-            
-        classification_result = classify_document(text)
-        
-        return {
-            "doc_type": classification_result.get("doc_type"),
-            "summary": classification_result.get("summary"),
-            "key_sections": classification_result.get("key_sections"),
-            "full_text": text
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """Handle PDF upload + classification + quick scan preview."""
+    file_id = str(uuid.uuid4())
+    temp_path = os.path.join(UPLOAD_DIR, f"{file_id}.pdf")
+
+    with open(temp_path, "wb") as f:
+        f.write(await file.read())
+
+    # Extract text
+    full_text = extract_text_from_pdf(temp_path)
+
+    # Classify doc
+    doc_type = classify_document(full_text)
+
+    # Quick preview summary
+    preview = summarize_document(full_text, depth="quick")
+
+    return {
+        "status": "success",
+        "file_id": file_id,
+        "doc_type": doc_type,
+        "full_text": full_text,
+        "quick_preview": preview
+    }
+
 
 @app.post("/summarize")
-async def summarize(request: SummarizeRequest):
-    try:
-        summary = summarize_document(request.text, request.priorities)
-        return {"summary": summary}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def refine_summary(req: SummarizeRequest):
+    """Accept JSON and return refined summary."""
+    summary = summarize_document(
+        text=req.text,
+        focus_areas=req.priorities,
+        output_format=req.format,
+        depth=req.depth
+    )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    return {"summary": summary}

@@ -1,16 +1,28 @@
-import io
 from pypdf import PdfReader
 
-def extract_text_from_pdf(file_bytes: bytes) -> str:
+def extract_text_from_pdf(file_path: str) -> str:
     """
-    Extracts text from a PDF file provided as bytes.
+    Clean text extraction from PDF.
+    Keeps paragraphs, removes broken newlines.
     """
     try:
-        reader = PdfReader(io.BytesIO(file_bytes))
-        text = ""
+        reader = PdfReader(file_path)
+        raw_text = []
+
         for page in reader.pages:
-            text += page.extract_text() + "\n"
-        return text.strip()
+            text = page.extract_text()
+            if not text:
+                continue
+
+            # Fix broken words + excessive newlines
+            cleaned = (
+                text.replace("\n", " ")
+                    .replace("  ", " ")
+                    .strip()
+            )
+            raw_text.append(cleaned)
+
+        return "\n\n".join(raw_text)
+
     except Exception as e:
-        print(f"Error extracting text from PDF: {e}")
-        return ""
+        return f"[PDF ERROR] {str(e)}"

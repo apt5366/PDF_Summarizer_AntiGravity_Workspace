@@ -1,0 +1,16 @@
+### Test classifier
+POST http://127.0.0.1:8000/classify
+Content-Type: application/json
+
+{
+  "text": "THIS AGREEMENT is made between two parties..."
+}
+
+### Test summarizer
+POST http://127.0.0.1:8000/summarize
+Content-Type: application/json
+
+{
+  "text": "This quarter the company reports higher revenue...",
+  "priorities": ["Quarter Highlights"]
+}

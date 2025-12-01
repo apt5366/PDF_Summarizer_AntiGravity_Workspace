@@ -1,0 +1,9 @@
+POST http://127.0.0.1:8000/summarize
+Content-Type: application/json
+
+{
+  "text": "The invoices must include the following information:\n1. Labor (staff name, hours charged, hourly billing rate...)\n2. Itemized expenses incurred during the billing period;\n3. Total invoice/payment requested;\n4. Total amount previously paid under this Agreement;\n5. Report of expenditures by CONSULTANT and subconsultants;\n6. Written progress reports sufficiently detailed for the Contract Manager;\n7. Consultant's final invoice must be submitted within 60 days.\n\nTERM: Agreement takes effect on approval and ends on specified date unless extended.\n\nEARLY TERMINATION: Commission may terminate with 30-day notice, and reimburse allowable costs.",
+  "priorities": ["Risks"],
+  "format": "bullets",
+  "depth": "quick"
+}
