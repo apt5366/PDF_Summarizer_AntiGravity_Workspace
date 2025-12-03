@@ -6,7 +6,7 @@ import uuid
 
 from utils.pdf_utils import extract_text_from_pdf
 from utils.classifier import classify_document
-from utils.summarizer import summarize_document
+from utils.summarizer import summarize_document, extract_key_themes
 
 app = FastAPI()
 
@@ -51,6 +51,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     - PDF upload
     - Text extraction
     - Deterministic classification
+    - Key theme extraction
     - Quick summary generation
     """
     file_id = str(uuid.uuid4())
@@ -72,14 +73,18 @@ async def upload_pdf(file: UploadFile = File(...)):
     # Quick scan summary
     preview = summarize_document(full_text, depth="quick")
 
+    # NEW: Extract key themes for UI insight
+    themes = extract_key_themes(full_text)
+
     return {
         "status": "success",
         "file_id": file_id,
-        "file_name": file.filename,    # <-- Added
+        "file_name": file.filename,
         "doc_type": doc_type,
-        "raw_doc_type": raw_doc_type,  # <-- Helpful for debugging/UI logic
+        "raw_doc_type": raw_doc_type,
         "full_text": full_text,
-        "quick_preview": preview
+        "quick_preview": preview,
+        "themes": themes,  # <-- NEW FIELD FOR STEP 2
     }
 
 

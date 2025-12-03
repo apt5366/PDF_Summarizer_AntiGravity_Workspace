@@ -78,3 +78,47 @@ Now return the final summary.
 
     summary = run_llm(prompt).strip()
     return summary
+
+
+
+# ==========================================================
+#   NEW FEATURE: AUTOMATIC KEY THEME EXTRACTION (Step 2)
+# ==========================================================
+
+def extract_key_themes(text: str):
+    """
+    Extract the 3–6 key themes from the document.
+    Must be EXTRACTIVE — no hallucinations.
+    """
+
+    theme_prompt = f"""
+You are an expert at identifying high-level themes in documents.
+
+TASK:
+Extract ONLY the major themes present in the following text.
+Return 3–6 themes MAX.
+
+STRICT RULES:
+- Themes must come DIRECTLY from the document.
+- DO NOT invent topics that are not mentioned.
+- Keep theme names short (2–5 words).
+- Each theme must reflect an actual repeated concept or section.
+
+FORMAT:
+Return as a simple bullet list:
+- Theme 1
+- Theme 2
+- Theme 3
+...
+
+-----------------------------------------
+DOCUMENT (BEGIN)
+-----------------------------------------
+{text[:8000]}
+-----------------------------------------
+DOCUMENT (END)
+-----------------------------------------
+"""
+
+    result = run_llm(theme_prompt)
+    return result.strip()
