@@ -10,7 +10,7 @@ from utils.summarizer import summarize_document
 
 app = FastAPI()
 
-# Enable local dev from v0
+# CORS for local V0 testing
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,34 +21,63 @@ app.add_middleware(
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+
+# ----------------------------
+# Human-friendly names for UI
+# ----------------------------
+DOC_TYPE_DISPLAY = {
+    "contract": "Legal Contract",
+    "annual_report": "Annual Report / 10-K",
+    "quarterly_report": "Quarterly Earnings / 10-Q",
+    "earnings_call": "Earnings Call Transcript",
+    "market_analysis": "Market Analysis Report",
+    "mou": "Memorandum of Understanding (MoU)",
+    "sla": "Service Terms / SLA",
+    "general": "Other"
+}
+
+
 class SummarizeRequest(BaseModel):
     text: str
     priorities: list[str] = []
     format: str = "bullets"
     depth: str = "quick"
 
+
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
-    """Handle PDF upload + classification + quick scan preview."""
+    """
+    Handles:
+    - PDF upload
+    - Text extraction
+    - Deterministic classification
+    - Quick summary generation
+    """
     file_id = str(uuid.uuid4())
     temp_path = os.path.join(UPLOAD_DIR, f"{file_id}.pdf")
 
+    # Save uploaded file
     with open(temp_path, "wb") as f:
         f.write(await file.read())
 
-    # Extract text
+    # Extract full text
     full_text = extract_text_from_pdf(temp_path)
 
-    # Classify doc
-    doc_type = classify_document(full_text)
+    # Raw classifier output (canonical form)
+    raw_doc_type = classify_document(full_text)
 
-    # Quick preview summary
+    # Human-readable label for UI
+    doc_type = DOC_TYPE_DISPLAY.get(raw_doc_type, "Other")
+
+    # Quick scan summary
     preview = summarize_document(full_text, depth="quick")
 
     return {
         "status": "success",
         "file_id": file_id,
+        "file_name": file.filename,    # <-- Added
         "doc_type": doc_type,
+        "raw_doc_type": raw_doc_type,  # <-- Helpful for debugging/UI logic
         "full_text": full_text,
         "quick_preview": preview
     }
@@ -56,12 +85,11 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 @app.post("/summarize")
 async def refine_summary(req: SummarizeRequest):
-    """Accept JSON and return refined summary."""
+    """Return refined summary using the selected focus areas."""
     summary = summarize_document(
         text=req.text,
         focus_areas=req.priorities,
         output_format=req.format,
         depth=req.depth
     )
-
     return {"summary": summary}

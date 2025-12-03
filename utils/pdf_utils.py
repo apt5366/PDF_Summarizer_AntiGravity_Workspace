@@ -1,28 +1,32 @@
-from pypdf import PdfReader
+import fitz  # PyMuPDF
 
 def extract_text_from_pdf(file_path: str) -> str:
     """
-    Clean text extraction from PDF.
-    Keeps paragraphs, removes broken newlines.
+    High-quality extraction using PyMuPDF.
+    Preserves correct reading order much better than pypdf.
     """
+
     try:
-        reader = PdfReader(file_path)
-        raw_text = []
+        doc = fitz.open(file_path)
+        blocks = []
 
-        for page in reader.pages:
-            text = page.extract_text()
-            if not text:
-                continue
+        for page in doc:
+            text = page.get_text("text")
+            if text:
+                cleaned = (
+                    text.replace("\t", " ")
+                        .replace("  ", " ")
+                        .strip()
+                )
+                blocks.append(cleaned)
 
-            # Fix broken words + excessive newlines
-            cleaned = (
-                text.replace("\n", " ")
-                    .replace("  ", " ")
-                    .strip()
-            )
-            raw_text.append(cleaned)
+        final_text = "\n\n".join(blocks)
 
-        return "\n\n".join(raw_text)
+        print("\n========== PDF RAW TEXT SAMPLE ==========\n")
+        print(final_text[:2000])
+        print("\n=========== END RAW TEXT SAMPLE ==========\n")
+
+        return final_text
 
     except Exception as e:
         return f"[PDF ERROR] {str(e)}"
