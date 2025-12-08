@@ -2,6 +2,7 @@ import ollama
 
 MODEL = "mistral:instruct"
 
+
 def run_llm(prompt: str, max_tokens: int = 4000) -> str:
     """Reliable LLM wrapper for Ollama."""
     try:
