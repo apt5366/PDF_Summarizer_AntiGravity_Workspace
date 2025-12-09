@@ -97,6 +97,7 @@ def _call_openai_llm(prompt: str, **kwargs) -> str:
         raise
 
 
+
 # ---------------- OPENVINO (INTEL GPU/CPU) ---------------- #
 
 def _call_openvino_llm(prompt: str, **kwargs) -> str:
