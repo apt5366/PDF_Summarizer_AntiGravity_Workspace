@@ -5,9 +5,10 @@ const API_BASE = "http://localhost:8000"
 
 /**
  * Unified JSON handler.
- * Returns:
- *  - { status: "success", ...real data... }
- *  - { status: "error", message: string }
+ * IMPORTANT:
+ * - Never throw except on network failures.
+ * - Always return a JSON object. For HTTP errors, we normalize to:
+ *   { status: "error", message: "..." }
  */
 async function safeJSON(response: Response) {
   let json: any = {}
@@ -31,14 +32,6 @@ async function safeJSON(response: Response) {
     }
   }
 
-  // force guarantee: backend MUST include status
-  if (!json.status) {
-    return {
-      status: "error",
-      message: "Backend returned malformed response.",
-    }
-  }
-
   return json
 }
 
@@ -58,7 +51,7 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
 }
 
 // ------------------------------
-// Freeform Question
+// Ask a freeform question (/ask)
 // ------------------------------
 export async function askQuestion(
   fileId: string,
@@ -77,7 +70,7 @@ export async function askQuestion(
 }
 
 // ------------------------------
-// Follow-up Action
+// Trigger a predefined follow-up (/followup)
 // ------------------------------
 export async function followUpAction(
   fileId: string,
@@ -93,4 +86,50 @@ export async function followUpAction(
   })
 
   return safeJSON(res)
+}
+
+// ------------------------------
+// Guided summary refinement (/summarize)
+// ------------------------------
+
+export interface SummarizeOptions {
+  text: string
+  priorities: string[]
+  format: "bullets" | "narrative" | "json"
+  depth: "quick" | "medium" | "deep"
+}
+
+export interface SummarizeResponse {
+  summary?: string
+  status?: "success" | "error"
+  message?: string
+}
+
+export async function refineSummary(
+  options: SummarizeOptions
+): Promise<SummarizeResponse> {
+  const res = await fetch(`${API_BASE}/summarize`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text: options.text,
+      priorities: options.priorities,
+      format: options.format,
+      depth: options.depth,
+    }),
+  })
+
+  const json = await safeJSON(res)
+  // /summarize currently returns { summary: "..." } on success
+  if (json && typeof json.summary === "string") {
+    return {
+      status: "success",
+      summary: json.summary,
+    }
+  }
+
+  return {
+    status: json.status ?? "error",
+    message: json.message ?? "Failed to generate summary.",
+  }
 }
