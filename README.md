@@ -89,32 +89,7 @@ Switchable via environment variable.
 
 🏗️ System Architecture
 
-frontend/
-  ├─ app/
-  │   └─ document/[file_id]/
-  │        ├─ page.tsx
-  │        └─ client-page.tsx
-  ├─ components/
-  │   ├─ executive-summary-card.tsx
-  │   ├─ insight-list.tsx
-  │   ├─ category-accordion.tsx
-  │   ├─ followup-actions.tsx
-  │   └─ chat-panel.tsx
-  ├─ context/
-  │   └─ DocumentContext.tsx
-  └─ lib/
-      └─ api.ts
-
-backend/
-  ├─ main.py                  ← FastAPI entrypoint
-  ├─ utils/
-  │   ├─ analysis_engine.py   ← Full analysis pipeline
-  │   ├─ summarizer.py        ← Summary, insights, themes
-  │   ├─ classifier.py        ← Doc type classifier
-  │   ├─ pdf_utils.py         ← PDF text extraction
-  │   └─ llm.py               ← Local/Cloud LLM abstraction
-  └─ uploads/                 ← Temporary file storage
-
+<img width="751" height="626" alt="image" src="https://github.com/user-attachments/assets/56d62d27-de9d-48b0-b914-d62b72bd198a" />
 
 Tech Stack
 Frontend (Next.js 14 + TypeScript)
