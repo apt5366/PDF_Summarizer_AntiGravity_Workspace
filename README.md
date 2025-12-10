@@ -1,275 +1,207 @@
-Antigravity Document Summarizer (V0)
+AI Document Intelligence Platform
 
-Next-generation PDF understanding and summarization engine designed around an Insight-First workflow.
+Context-Aware Summaries • Insight Extraction • Ask-Anything Chat • Follow-Up Reasoning
 
-This project demonstrates how modern LLMs can automatically extract structure, context, key themes, and tailored summaries from long unstructured documents with minimal user input.
+This project is a full-stack AI system that uploads a PDF, analyzes it using an LLM-driven extraction pipeline, and provides highly relevant summaries, insights, and follow-ups tailored to the user's intent.
+Designed for analysts, bankers, researchers, and operators who need fast, trustworthy document understanding with zero friction.
 
-🚀 Key Features
-1. Insight-First Workflow
+🌟 Key Features
+1. Smart PDF Ingestion & Classification
 
-Upload a PDF → system instantly produces:
+Extracts text using PyMuPDF
 
-Document type classification
+Classifies the document by type
 
-Quick extractive summary
+Auto-detects structure, sections, themes, and potential personas
 
-AI-detected key themes
+Works with earnings reports, 10-K/10-Q, contracts, pitch decks, strategy docs, etc.
 
-Suggested focus areas based on doc type
+2. Insight-First Document Analysis
 
-No manual setup required.
+After upload, the system automatically generates:
 
-2. Extractive Summarization Engine
+A clean executive summary
 
-Uses a controlled, grounded prompt
+3–5 key insights with page-mapped citations
 
-Ensures no hallucinations
+Key themes
 
-Prioritizes accuracy and evidence from the document
+Suggested follow-up actions tailored to the document type
 
-Supports configurable depth (quick, medium, deep)
+Structured categories (Financials, Risks, Strategy, etc.)
 
-Supports multiple formats (bullets, narrative, JSON)
+This allows any analyst to understand a document at a glance.
 
-3. Theme-Aware Refinement
+3. Guided Summary Customization (Redesign Flow)
 
-Users can:
+Instead of forcing a generic summary, the system:
 
-Click on AI-detected themes
+Detects doc type, persona, and internal signals
 
-Choose suggested focus areas
+Suggests what the summary should focus on (risks, catalysts, financials, obligations, etc.)
 
-Refine the summary based on selected topics
+Lets the user choose what they care about
 
-The backend integrates these into a targeted second-pass summarization.
+Generates the final executive summary only after user confirmation
 
-4. Automatic Document Classification
+This dramatically increases user trust and relevance.
 
-Documents are automatically categorized into canonical types:
+4. Ask-Anything Chat Mode
 
-Annual report
+Users can ask natural questions like:
 
-Quarterly report
+“What are the key risks?”
 
-Earnings call
+“Summarize financial performance in one paragraph.”
 
-Contract / Legal agreement
+“What guidance is given for next quarter?”
 
-Market analysis
+The backend:
 
-MOU / SLA
+Retrieves relevant chunks
 
-General document
+Asks the LLM using an extractive prompt
 
-This classification drives downstream theme and focus suggestions.
+Returns an answer + supporting citations + page numbers
 
-5. Flexible LLM Backend (Local / Cloud Ready)
+5. Instant Follow-Up Actions
 
-The system is architected so the LLM backend can be swapped between:
+From the first scan, the system surfaces helpful follow-ups such as:
 
-Local models (e.g., running via Ollama or similar)
+Show me all risks
 
-Cloud APIs (OpenAI, Anthropic, Gemini)
+Extract key metrics
 
-This allows:
+Summarize financial performance
 
-Fast, cheap local development
+Explain strategic initiatives
 
-High-accuracy cloud inference for demos or production
+Click → Answer → Cited excerpts → Done.
 
-(Backend switching module will be expanded in upcoming updates.)
+6. Local or Cloud LLM Support
 
-6. Modern Frontend (Next.js + ShadCN UI)
+The backend supports:
 
-The UI includes:
+Local models via Ollama (mistral, mistral:instruct, etc.)
 
-PDF upload panel
+Cloud LLMs (OpenAI, Anthropic, etc.)
+Switchable via environment variable.
 
-Summary preview panel
+🏗️ System Architecture
 
-Theme chips
-
-Suggested focus area chips
-
-Format/depth refinement controls
-
-Live refinement output
-
-Designed for clarity and minimal cognitive load.
-
-🧠 Project Architecture
 frontend/
-  app/
-    page.tsx
-    components/
-      upload-panel.tsx
-      preview-panel.tsx
-      preview-card.tsx
-      suggested-focus-areas.tsx
-      focus-areas-chips.tsx
-      error-panel.tsx
-      refine-controls.tsx
-  public/
-  styles/
+  ├─ app/
+  │   └─ document/[file_id]/
+  │        ├─ page.tsx
+  │        └─ client-page.tsx
+  ├─ components/
+  │   ├─ executive-summary-card.tsx
+  │   ├─ insight-list.tsx
+  │   ├─ category-accordion.tsx
+  │   ├─ followup-actions.tsx
+  │   └─ chat-panel.tsx
+  ├─ context/
+  │   └─ DocumentContext.tsx
+  └─ lib/
+      └─ api.ts
 
 backend/
-  main.py                   # FastAPI server
-  utils/
-    pdf_utils.py            # PDF text extraction
-    classifier.py           # Deterministic doc-type classifier
-    summarizer.py           # Summary + theme extraction logic
-    llm.py                  # Local LLM interface (cloud-ready)
+  ├─ main.py                  ← FastAPI entrypoint
+  ├─ utils/
+  │   ├─ analysis_engine.py   ← Full analysis pipeline
+  │   ├─ summarizer.py        ← Summary, insights, themes
+  │   ├─ classifier.py        ← Doc type classifier
+  │   ├─ pdf_utils.py         ← PDF text extraction
+  │   └─ llm.py               ← Local/Cloud LLM abstraction
+  └─ uploads/                 ← Temporary file storage
 
-uploads/                    # Temporary PDF storage
 
-⚙️ Tech Stack
-Backend
+Tech Stack
+Frontend (Next.js 14 + TypeScript)
 
-Python
+Next.js App Router
 
-FastAPI
+Client-side React components
 
-PyMuPDF for PDF parsing
+Context-based state management
 
-Local LLM interface (cloud-upgradable)
+Shadcn UI for consistent styling
 
-Frontend
+Fetch-based API client
 
-Next.js (App Router)
+Backend (FastAPI + Python)
 
-React
+FastAPI with CORS
 
-TailwindCSS
+PyMuPDF for PDF extraction
 
-shadcn/ui components
+Custom LLM abstraction layer
 
-📡 API Endpoints
-POST /upload
+Local LLM execution via Ollama
 
-Uploads a PDF and returns:
+JSON-based response models
 
-{
-  "status": "success",
-  "file_id": "...",
-  "doc_type": "Annual Report / 10-K",
-  "raw_doc_type": "annual_report",
-  "full_text": "...",
-  "quick_preview": "...",
-  "themes": ["Audit & Opinion", "Financial Risks", ...]
-}
+Multi-step or single-step LLM pipelines
 
-POST /summarize
+🧠 Analysis Pipeline Overview
+Upload → Extract → Classify → Analyze → Suggest → Interact
 
-Refines the summary based on user-selected areas:
+Text extraction
 
-{
-  "summary": "..."
-}
+Document classification (rule-based + optional LLM fallback)
 
-💻 Running the Project
+Full analysis generation
+
+Key insight extraction
+
+Theme detection
+
+Structured category summaries
+
+Follow-up questions generation
+
+Chat-based Q&A with citations
+
+The system can fall back to a multi-call pipeline if the fast JSON path fails.
+
+🔧 Running the System Locally
 Backend
 cd backend
+pip install -r requirements.txt
 uvicorn main:app --reload
-
-
-Backend runs at:
-
-http://127.0.0.1:8000
 
 Frontend
 cd frontend
 npm install
 npm run dev
 
-
-Frontend runs at:
-
-http://localhost:3000
-
-🖼️ User Interface Flow
-1. Upload → Auto Scan
-
-System extracts text
-
-Detects document type
-
-Generates a quick summary
-
-Extracts key themes
-
-2. User Selects Themes or Focus Areas
-
-Themes appear immediately under the summary
-
-Clicking a theme adds it to refinement
-
-3. Refinement
-
-User selects format (bullets, narrative, JSON)
-
-User selects depth (quick, medium, deep)
-
-Summary updates with theme-weighted extraction
-
-🏗️ System Architecture Diagram
-
-                        ┌────────────────────────┐
-                        │        Frontend        │
-                        │  (Next.js + Tailwind)  │
-                        └───────────┬────────────┘
-                                    │
-                     Upload PDF     │    Get Summary / Themes
-                                    ▼
-                    ┌────────────────────────────┐
-                    │          Backend            │
-                    │        (FastAPI)            │
-                    ├─────────────┬───────────────┤
-                    │             │               │
-        ┌───────────▼───┐   ┌─────▼────────┐  ┌──▼────────────────┐
-        │  PDF Extractor │   │ Classifier    │  │ Summarizer        │
-        │   (PyMuPDF)    │   │ (Rules-based) │  │ + Theme Extractor │
-        └───────────────┘   └───────────────┘  └──────┬────────────┘
-                                                       │
-                                               LLM Request via
-                                                       │
-                                        ┌────────────────────────────────┐
-                                        │         run_llm() Wrapper      │
-                                        ├────────────────┬───────────────┤
-                                        │                │               │
-                                ┌───────▼──────┐  ┌─────▼───────┐  ┌────▼─────────┐
-                                │ Local LLM     │  │ OpenAI API   │  │ Claude API   │
-                                │ (Ollama)      │  │ (Optional)   │  │ (Optional)    │
-                                └───────────────┘  └──────────────┘  └──────────────┘
+Ollama (for local LLMs)
+ollama serve
+ollama pull mistral
 
 
-🎯 Completed Against Employer Requirements
+Switch the backend model:
 
-Removed all manual configuration
+export LLM_BACKEND=local
+export LLM_MODEL=mistral:instruct
 
-No persona or ranking steps
+🗺️ Roadmap
+Near-Term Enhancements
 
-Fully automated “Scan First → Ask Later” workflow
+Guided “summary preference” step before generating executive summary
 
-Theme-driven refinement
+Persona-based analysis (Banker, VC, Operator, Lawyer, etc.)
 
-Extractive, grounded summarization
+Section-by-section reconstruction for structured documents
 
-Dynamic UI based on doc type
+Multi-document comparison (e.g., Q1 → Q2 drift)
 
-Replaces wizard UI with Draft-and-Refine pattern
+Future Extensions
 
-🔮 Next Planned Improvements
+User libraries & historical analysis
 
-Chunk-aware summarization for long documents
+Competitive benchmarks (e.g., peers in the same industry)
 
-Cloud LLM backend toggle
+Financial metric extraction & normalization
 
-Deep-dive refinement (“Explain more about X”)
-
-Search-inside-document with extracted highlights
-
-Lightweight validation: summary faithfulness check
-
-📄 License
-
-MIT — free to use, modify, and extend.
+Auto-generated charts from financial tables
