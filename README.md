@@ -280,8 +280,7 @@ Key backend components:
 Planned views:
 * Intro Page to insert PDF
 * Section Builder (structure definition)
-* Generated executive summary
-* Insight exploration panel
+* Generated executive summary & Insight exploration panel
 * Chat-based document Q&A
 
 ---
