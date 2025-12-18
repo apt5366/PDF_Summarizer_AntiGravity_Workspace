@@ -5,10 +5,8 @@ const API_BASE = "http://localhost:8000"
 
 /**
  * Unified JSON handler.
- * IMPORTANT:
- * - Never throw except on network failures.
- * - Always return a JSON object. For HTTP errors, we normalize to:
- *   { status: "error", message: "..." }
+ * Never throw except on network failures.
+ * Always return normalized error structure.
  */
 async function safeJSON(response: Response) {
   let json: any = {}
@@ -25,19 +23,16 @@ async function safeJSON(response: Response) {
   if (!response.ok) {
     return {
       status: "error",
-      message:
-        json?.message ??
-        json?.detail ??
-        "Server reported an error.",
+      message: json?.message ?? json?.detail ?? "Server reported an error.",
     }
   }
 
   return json
 }
 
-// ------------------------------
+// --------------------------------------------------
 // Upload PDF
-// ------------------------------
+// --------------------------------------------------
 export async function uploadDocument(file: File): Promise<UploadResponse> {
   const formData = new FormData()
   formData.append("file", file)
@@ -50,9 +45,9 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
   return safeJSON(res)
 }
 
-// ------------------------------
-// Ask a freeform question (/ask)
-// ------------------------------
+// --------------------------------------------------
+// Ask question (/ask)
+// --------------------------------------------------
 export async function askQuestion(
   fileId: string,
   question: string
@@ -60,18 +55,15 @@ export async function askQuestion(
   const res = await fetch(`${API_BASE}/ask`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      file_id: fileId,
-      question,
-    }),
+    body: JSON.stringify({ file_id: fileId, question }),
   })
 
   return safeJSON(res)
 }
 
-// ------------------------------
-// Trigger a predefined follow-up (/followup)
-// ------------------------------
+// --------------------------------------------------
+// Follow-up (/followup)
+// --------------------------------------------------
 export async function followUpAction(
   fileId: string,
   action: string
@@ -79,18 +71,15 @@ export async function followUpAction(
   const res = await fetch(`${API_BASE}/followup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      file_id: fileId,
-      action,
-    }),
+    body: JSON.stringify({ file_id: fileId, action }),
   })
 
   return safeJSON(res)
 }
 
-// ------------------------------
-// Guided summary refinement (/summarize)
-// ------------------------------
+// --------------------------------------------------
+// Structured summarization (/summarize)
+// --------------------------------------------------
 
 export interface SummarizeOptions {
   text: string
@@ -99,11 +88,19 @@ export interface SummarizeOptions {
   depth: "quick" | "medium" | "deep"
 }
 
-export interface SummarizeResponse {
-  summary?: string
-  status?: "success" | "error"
-  message?: string
-}
+/**
+ * TRUE discriminated union.
+ * Matches backend reality exactly.
+ */
+export type SummarizeResponse =
+  | {
+      status: "success"
+      narrative: string
+    }
+  | {
+      status: "error"
+      message: string
+    }
 
 export async function refineSummary(
   options: SummarizeOptions
@@ -111,25 +108,20 @@ export async function refineSummary(
   const res = await fetch(`${API_BASE}/summarize`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text: options.text,
-      priorities: options.priorities,
-      format: options.format,
-      depth: options.depth,
-    }),
+    body: JSON.stringify(options),
   })
 
   const json = await safeJSON(res)
-  // /summarize currently returns { summary: "..." } on success
-  if (json && typeof json.summary === "string") {
+
+  if (json.status === "success" && typeof json.narrative === "string") {
     return {
       status: "success",
-      summary: json.summary,
+      narrative: json.narrative,
     }
   }
 
   return {
-    status: json.status ?? "error",
-    message: json.message ?? "Failed to generate summary.",
+    status: "error",
+    message: json.message || "Failed to generate summary.",
   }
 }
