@@ -269,6 +269,8 @@ Key backend components:
 
 ![Recording 2025-12-18 152413](https://github.com/user-attachments/assets/25592234-6a00-4ece-a2d9-f180b8d10087)
 
+![GIF_Section_builder_correct_size](https://github.com/user-attachments/assets/b2bb5528-b6b4-404c-b31e-1e245ace9e95)
+
 
 ![GIF_Gen_Summary_nd_key_insights_low_res](https://github.com/user-attachments/assets/e85e83bc-7ddb-4817-8023-21737d5c8143)
 
@@ -276,7 +278,7 @@ Key backend components:
 
 
 Planned views:
-
+* Intro Page to insert PDF
 * Section Builder (structure definition)
 * Generated executive summary
 * Insight exploration panel
