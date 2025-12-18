@@ -11,6 +11,48 @@ logger = logging.getLogger("antigravity.summarizer")
 logging.basicConfig(level=logging.INFO)
 
 
+# def enforce_format(text: str, fmt: str) -> str:
+#     """
+#     Ensure bullet vs narrative formatting is respected.
+#     """
+#     cleaned = (text or "").strip()
+
+#     if fmt == "bullets":
+#         lines = [l.strip("-• ").strip() for l in cleaned.split("\n") if l.strip()]
+#         return "\n".join(f"- {l}" for l in lines)
+
+#     # narrative
+#     return cleaned
+
+def enforce_format(text: str, fmt: str) -> str:
+    """
+    Ensure bullet vs narrative formatting is respected.
+    Handles stringified lists like ['a', 'b', 'c'] safely.
+    """
+    cleaned = (text or "").strip()
+
+    if fmt != "bullets":
+        return cleaned
+
+    # Remove surrounding brackets if present
+    if cleaned.startswith("[") and cleaned.endswith("]"):
+        cleaned = cleaned[1:-1]
+
+    # Split on comma ONLY if it looks like a quoted list
+    if "','" in cleaned or '", "' in cleaned:
+        parts = re.split(r"',\s*'|\",\s*\"", cleaned)
+        lines = [p.strip(" '\"") for p in parts if p.strip()]
+    else:
+        lines = [
+            l.strip("-• ").strip()
+            for l in cleaned.split("\n")
+            if l.strip()
+        ]
+
+    return "\n".join(f"- {l}" for l in lines)
+
+
+
 # -------------------------------------------------------------------
 # Core summarizer (existing) – still used by /summarize endpoint
 # -------------------------------------------------------------------
@@ -53,6 +95,22 @@ def summarize_document(
 
     doc_snippet = text[:14000] if text else ""
 
+
+    if output_format == "bullets":
+        style_block = """
+    Write the summary strictly as bullet points.
+    - Use '-' for bullets
+    - No paragraphs
+    - No section headers
+    """
+    else:
+        style_block = """
+    Write the summary as a continuous narrative.
+    - Use full sentences and paragraphs
+    - Do not use bullet points
+    """
+
+
     prompt = f"""
 You are an **EXTRACTIVE summarization model**.
 
@@ -62,6 +120,9 @@ STRICT RULES:
 - DO NOT add data that is not explicitly present in the text.
 - DO NOT generalize beyond the document.
 - If a focus area has no coverage in the text, clearly state: "Not discussed in the document."
+
+
+{style_block}
 
 Summarization goals:
 {focus_block}
@@ -88,7 +149,7 @@ Now return the final summary.
         if not out:
             logger.warning("LLM returned empty summary (summarize_document).")
             return "No summary returned by LLM."
-        return out
+        return enforce_format(out, output_format)
     except Exception as e:
         logger.exception("Error calling run_llm in summarize_document(): %s", e)
         raise
@@ -490,6 +551,146 @@ def suggest_follow_up_actions(
             break
 
     return final_actions
+
+# ================================================================
+# 🔥 NEW: Structured Section-by-Section Summarizer (/summarize)
+# ================================================================
+
+
+def generate_structured_section_summary(
+    text: str,
+    priorities: List[str],
+    output_format: str = "bullets",
+    depth: str = "medium",
+) -> Dict[str, Any]:
+
+    if not text:
+        return {"status": "error", "message": "Empty document text."}
+
+    doc_snippet = text[:24000]
+
+    depth_rules = {
+        "quick": "Write 2–4 sentences per section.",
+        "medium": "Write 4–7 sentences per section.",
+        "deep": "Write 2–3 short paragraphs per section.",
+    }
+
+    format_rules = {
+        "bullets": (
+            "Each section value MUST be a single STRING.\n"
+            "Use '- ' for bullets inside the string.\n"
+            "DO NOT return arrays, JSON, or nested objects."
+        ),
+        "narrative": (
+            "Each section value MUST be a single STRING.\n"
+            "Plain sentences only. NO bullets, NO JSON."
+        ),
+    }
+
+    readable_plan = "\n".join(f"- {p}" for p in priorities)
+
+    prompt = f"""
+You are an EXTRACTIVE summarization model.
+
+STRICT RULES:
+- Use ONLY information in the document.
+- NO speculation.
+- If missing: write exactly "Not discussed in the document."
+
+SECTION PLAN (YOU MUST RETURN ALL OF THESE):
+{readable_plan}
+
+IMPORTANT:
+You MUST return an entry for EVERY section listed above.
+
+FORMAT RULES:
+{format_rules.get(output_format)}
+
+DEPTH:
+{depth_rules.get(depth)}
+
+OUTPUT (JSON ONLY):
+{{
+  "sections": {{
+    "Section Title": "Text only",
+    "Another Section": "Text only"
+  }}
+}}
+
+DOCUMENT:
+{doc_snippet}
+"""
+
+    try:
+        raw = run_llm(prompt)
+        match = re.search(r"\{.*\}", raw, re.DOTALL)
+        data = json.loads(match.group(0))
+    except Exception:
+        return {
+            "status": "success",
+            "sections": {"Summary": raw.strip()}
+        }
+
+    sections = data.get("sections", {})
+    normalized = {}
+
+    for k, v in sections.items():
+        text = str(v).strip()
+        text = re.sub(r'^[{\[]|[}\]]$', '', text)
+        normalized[k] = text
+
+    return {"status": "success", "sections": normalized}
+
+
+
+
+# ================================================================
+# Wrapper used by FastAPI (/summarize)
+# ================================================================
+
+def handle_summarize_request(payload: Dict[str, Any]) -> Dict[str, Any]:
+    result = generate_structured_section_summary(
+        text=payload.get("text"),
+        priorities=payload.get("priorities", []),
+        output_format=payload.get("format", "bullets"),
+        depth=payload.get("depth", "medium"),
+    )
+
+    if result.get("status") != "success":
+        return result
+
+    fmt = payload.get("format", "bullets")
+    sections = result.get("sections", {})
+
+    combined = []
+    seen = set()
+
+    for title, content in sections.items():
+        content = content.strip()
+        if not content or content.lower().startswith("not discussed"):
+            continue
+
+        if fmt == "bullets":
+            combined.append(f"{title}:")
+            combined.append(enforce_format(content, "bullets"))
+        else:
+            title_l = title.lower()
+            text = content
+
+            # Soft conclusion cue (Option B)
+            if "conclusion" in title_l or "overall" in title_l or "summary" in title_l:
+                text = f"Overall, {text[0].lower() + text[1:]}" if text else text
+
+            if text not in seen:
+                combined.append(text)
+                seen.add(text)            
+
+    narrative = (
+        "\n".join(combined) if fmt == "bullets"
+        else " ".join(s.rstrip(".") + "." for s in combined)
+    )
+
+    return {"status": "success", "narrative": narrative.strip()}
 
 
 # -------------------------------------------------------------------
