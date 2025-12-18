@@ -270,6 +270,11 @@ Key backend components:
 ![Recording 2025-12-18 152413](https://github.com/user-attachments/assets/25592234-6a00-4ece-a2d9-f180b8d10087)
 
 
+![GIF_Gen_Summary_nd_key_insights_low_res](https://github.com/user-attachments/assets/e85e83bc-7ddb-4817-8023-21737d5c8143)
+
+![Chat_feature_GIF_low_res](https://github.com/user-attachments/assets/2d537600-95d4-491d-929f-41c21e11bd05)
+
+
 Planned views:
 
 * Section Builder (structure definition)
