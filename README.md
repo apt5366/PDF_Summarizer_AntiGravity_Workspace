@@ -267,6 +267,9 @@ Key backend components:
 
 > Screenshots / demo GIFs coming soon.
 
+![Recording 2025-12-18 152413](https://github.com/user-attachments/assets/25592234-6a00-4ece-a2d9-f180b8d10087)
+
+
 Planned views:
 
 * Section Builder (structure definition)
