@@ -1,182 +1,385 @@
-AI Document Intelligence Platform
+# AI Document Intelligence System
 
-Context-Aware Summaries • Insight Extraction • Ask-Anything Chat • Follow-Up Reasoning
+An end-to-end **AI-powered document analysis and summarization platform** designed for long, complex business documents such as financial reports, contracts, research papers, and strategy decks.
 
-This project is a full-stack AI system that uploads a PDF, analyzes it using an LLM-driven extraction pipeline, and provides highly relevant summaries, insights, and follow-ups tailored to the user's intent.
-Designed for analysts, bankers, researchers, and operators who need fast, trustworthy document understanding with zero friction.
+The system goes beyond generic summarization by combining **structured user intent**, **LLM-driven analysis**, and an **interactive review workflow** inspired by tools like AlphaSense and Harvey AI.
 
-🌟 Key Features
-1. Smart PDF Ingestion & Classification
+---
 
-Extracts text using PyMuPDF
+## 🚀 What This Project Does
 
-Classifies the document by type
+This application allows users to upload large documents (PDFs) and:
 
-Auto-detects structure, sections, themes, and potential personas
+* Automatically analyze document type, themes, and key insights
+* Generate **tailored executive summaries** based on explicit structure
+* Ask natural-language follow-up questions grounded in the document
+* Explore insights, categories, and next-step actions without information overload
 
-Works with earnings reports, 10-K/10-Q, contracts, pitch decks, strategy docs, etc.
+Rather than a single "summarize" button, the app focuses on **guided analysis** — helping users decide *what they want to extract* before the LLM generates output.
 
-2. Insight-First Document Analysis
+---
 
-After upload, the system automatically generates:
+## 🧠 Why This Problem Is Non-Trivial
 
-A clean executive summary
+This project intentionally targets failure modes common in real-world LLM systems:
 
-3–5 key insights with page-mapped citations
+* **Importance is subjective**: What matters in a document depends heavily on the user’s role and decision context.
+* **Long-context degradation**: Feeding entire documents into an LLM leads to attention dilution and shallow reasoning.
+* **Lost-in-the-middle effects**: Critical information buried deep in long documents is often ignored by models.
+* **Hallucination vs. faithfulness trade-off**: Fluent summaries are not always factually correct.
+* **UX directly shapes model behavior**: Poor interfaces lead to poorly constrained prompts and low-quality output.
 
-Key themes
+This system prioritizes *alignment, controllability, and structure* over brute-force context stuffing.
 
-Suggested follow-up actions tailored to the document type
+---
 
-Structured categories (Financials, Risks, Strategy, etc.)
+## 🧠 Core Design Philosophy
 
-This allows any analyst to understand a document at a glance.
+Traditional LLM summarizers fail because they guess what is important.
 
-3. Guided Summary Customization (Redesign Flow)
+This system solves that by:
 
-Instead of forcing a generic summary, the system:
+* Separating **structure definition** from **generation**
+* Letting users explicitly define *sections* of an executive summary
+* Using document signals (themes, insights, doc type) to guide, not overwhelm
+* Generating summaries **only after intent is clear**
 
-Detects doc type, persona, and internal signals
+The result is higher-quality, more relevant summaries for analysts, bankers, investors, and decision-makers.
 
-Suggests what the summary should focus on (risks, catalysts, financials, obligations, etc.)
+---
 
-Lets the user choose what they care about
+## ✨ Key Features
 
-Generates the final executive summary only after user confirmation
+### 1. Intelligent Document Ingestion
 
-This dramatically increases user trust and relevance.
+* PDF upload and text extraction
+* Page-aware and chunk-aware processing
+* Automatic document-type detection (e.g. report, contract, memo)
 
-4. Ask-Anything Chat Mode
+### 2. Section Builder (Core Feature)
 
-Users can ask natural questions like:
+* Users define the **exact structure** of the executive summary
+* Each section can include custom instructions or prompts
+* System suggests structure using detected themes and insights
 
-“What are the key risks?”
+### 3. Tailored Executive Summary Generation
 
-“Summarize financial performance in one paragraph.”
+* Summary generated only after structure confirmation
+* Supports:
 
-“What guidance is given for next quarter?”
+  * Bullet-point or narrative style
+  * Multiple depth levels (quick, medium, deep)
+* Produces analyst-grade summaries aligned with user intent
 
-The backend:
+### 4. Insight & Category Exploration
 
-Retrieves relevant chunks
+* Automatically extracted key insights
+* High-level categories for fast scanning
+* Collapsible UI to reduce cognitive load
 
-Asks the LLM using an extractive prompt
+### 5. Follow-up Actions & Q&A
 
-Returns an answer + supporting citations + page numbers
+* Suggested follow-up questions based on document content
+* Interactive chat panel for grounded document Q&A
+* Enables iterative exploration without regenerating summaries
 
-5. Instant Follow-Up Actions
+### 6. Hybrid LLM Backend
 
-From the first scan, the system surfaces helpful follow-ups such as:
+* Supports local and cloud-based LLMs
+* Designed to switch between:
 
-Show me all risks
+  * Local open-source models (via Ollama / HuggingFace)
+  * Cloud APIs (OpenAI / others)
+* Optimized for long-document workflows
 
-Extract key metrics
+---
 
-Summarize financial performance
+## 🤖 Backend ML & LLM Pipeline
 
-Explain strategic initiatives
+The backend follows a **multi-stage, inference-time ML pipeline** designed specifically for long, complex documents where naïve prompting fails.
 
-Click → Answer → Cited excerpts → Done.
+### 1. Document Ingestion & Preprocessing
+
+* PDFs are parsed with page awareness to preserve document structure
+* Text is chunked to balance locality and global context
+* Basic normalization is applied prior to analysis
+
+### 2. Lightweight Document Understanding (Pre-LLM)
+
+* Document type is inferred (e.g., financial report, contract, memo)
+* High-level themes and candidate insights are extracted
+* These signals act as **control metadata**, not final outputs
+
+### 3. User-Defined Structure as a Learning Signal
+
+* The Section Builder defines an explicit output schema
+* Each section represents a constrained generation objective
+* This transforms a vague summarization task into multiple, well-scoped sub-tasks
+
+### 4. Structured LLM Invocation
+
+* LLM calls are made only after intent and structure are finalized
+* Prompts are constructed per section with:
+
+  * Explicit topical scope
+  * Style constraints (bullets vs narrative)
+  * Depth constraints (quick / medium / deep)
+* This reduces hallucinations and improves factual alignment
+
+### 5. Post-processing & Assembly
+
+* Section-level outputs are assembled into a coherent executive summary
+* Insights and follow-up actions are generated via separate prompts
+* Regeneration occurs only when user intent changes
+
+The pipeline is **model-agnostic** and supports seamless switching between local open-source models and cloud APIs.
+
+**ML Perspective**:
+
+* For *applied ML*, this demonstrates inference-time system design and controllability
+* For *research-oriented ML*, it highlights prompt structuring, alignment, and mitigation of long-context failure modes
 
-6. Local or Cloud LLM Support
+---
+
+## 🏗️ Architecture Overview
 
-The backend supports:
+```
+┌───────────────────────────┐
+│        Frontend           │
+│  Next.js + React + TS     │
+│                           │
+│  • Document upload UI     │
+│  • Section Builder        │
+│  • Executive Summary UI   │
+│  • Insights & Categories  │
+│  • Chat-based Q&A         │
+└─────────────┬─────────────┘
+              │ REST API
+              ▼
+┌───────────────────────────┐
+│          Backend          │
+│        FastAPI (Py)       │
+│                           │
+│  • PDF ingestion          │
+│  • Doc-type detection     │
+│  • Theme & insight extract│
+│  • Summary orchestration  │
+│  • Follow-up generation   │
+│  • LLM abstraction layer  │
+└─────────────┬─────────────┘
+              │
+              ▼
+┌───────────────────────────┐
+│        LLM Layer          │
+│                           │
+│  • Local models (Ollama)  │
+│  • Cloud APIs (optional)  │
+│  • Prompt-structured gen  │
+└───────────────────────────┘
+```
 
-Local models via Ollama (mistral, mistral:instruct, etc.)
+The system is intentionally designed so that **UI-defined structure directly controls LLM behavior**, avoiding monolithic prompts and enabling future agentic retrieval.
 
-Cloud LLMs (OpenAI, Anthropic, etc.)
-Switchable via environment variable.
+### Frontend
 
-🏗️ System Architecture
+* **Next.js (App Router)**
+* TypeScript + React
+* Component-driven UI
+* Focus on clarity, progressive disclosure, and analyst workflows
 
-<img width="751" height="626" alt="image" src="https://github.com/user-attachments/assets/56d62d27-de9d-48b0-b914-d62b72bd198a" />
+Key frontend modules:
 
-Tech Stack
-Frontend (Next.js 14 + TypeScript)
+* Document viewer & state management
+* Section Builder UI
+* Executive Summary display
+* Insight & category panels
+* Chat-based Q&A interface
 
-Next.js App Router
+### Backend
 
-Client-side React components
+* **FastAPI (Python)**
+* Modular pipeline design
 
-Context-based state management
+Key backend components:
 
-Shadcn UI for consistent styling
+* PDF text extraction utilities
+* Document classification engine
+* Summarization and refinement pipeline
+* Insight and theme extraction
+* Follow-up action generation
+* LLM abstraction layer for backend switching
 
-Fetch-based API client
+---
 
-Backend (FastAPI + Python)
+## 🔄 Typical User Flow
 
-FastAPI with CORS
+1. Upload a document (PDF)
+2. System analyzes document type and internal structure
+3. User defines or edits executive summary sections
+4. User selects summary style and depth
+5. Executive summary is generated
+6. User explores insights, categories, and follow-up actions
+7. User asks questions via chat for deeper analysis
 
-PyMuPDF for PDF extraction
+---
 
-Custom LLM abstraction layer
+## 🧩 Example Use Cases
 
-Local LLM execution via Ollama
+* Financial analysts reviewing annual reports
+* Investors scanning pitch decks or earnings transcripts
+* Consultants summarizing strategy documents
+* Legal or business users extracting obligations and risks
+* Founders quickly understanding large internal documents
 
-JSON-based response models
+---
 
-Multi-step or single-step LLM pipelines
+## 🛠️ Tech Stack
 
-🧠 Analysis Pipeline Overview
-Upload → Extract → Classify → Analyze → Suggest → Interact
+**Frontend**
 
-Text extraction
+* Next.js (App Router)
+* React
+* TypeScript
+* Tailwind CSS / shadcn UI
 
-Document classification (rule-based + optional LLM fallback)
+**Backend**
 
-Full analysis generation
+* Python
+* FastAPI
+* Pydantic
 
-Key insight extraction
+**AI / LLM**
 
-Theme detection
+* Local open-source LLMs (via Ollama / HuggingFace)
+* Optional cloud LLM APIs
+* Extractive-first, structure-driven prompting
 
-Structured category summaries
+**Design Emphasis (for AI/ML Engineers)**
 
-Follow-up questions generation
+* Long-context handling via prioritization instead of brute-force context stuffing
+* UI-driven prompt constraints
+* Clean separation between *intent definition* and *generation*
+* Architected for extension into agentic RAG and evaluation loops
 
-Chat-based Q&A with citations
+---
 
-The system can fall back to a multi-call pipeline if the fast JSON path fails.
+## 🖼️ UI Preview
 
-🔧 Running the System Locally
-Backend
+> Screenshots / demo GIFs coming soon.
+
+Planned views:
+
+* Section Builder (structure definition)
+* Generated executive summary
+* Insight exploration panel
+* Chat-based document Q&A
+
+---
+
+## ▶️ Setup & Run Locally
+
+### Prerequisites
+
+* Node.js (18+)
+* Python (3.10+)
+* Git
+* Optional: Ollama or access to a cloud LLM API
+
+---
+
+### Backend Setup
+
+```bash
 cd backend
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload
 
-Frontend
+uvicorn main:app --reload
+```
+
+The backend will start at: [http://localhost:8000](http://localhost:8000)
+
+---
+
+### Frontend Setup
+
+```bash
 cd frontend
 npm install
 npm run dev
+```
 
-Ollama (for local LLMs)
-ollama serve
-ollama pull mistral
+The frontend will be available at: [http://localhost:3000](http://localhost:3000)
 
+---
 
-Switch the backend model:
+### LLM Configuration
 
+The system has been tested primarily with **Mistral-Instruct** for local inference, while remaining fully **model-agnostic** and compatible with other open-source or cloud-hosted LLMs.
+
+The backend supports switching between local and cloud models via environment variables.
+
+**Local inference**
+
+```bash
 export LLM_BACKEND=local
-export LLM_MODEL=mistral:instruct
+export LOCAL_LLM_MODEL=mistral:instruct
+```
 
-🗺️ Roadmap
-Near-Term Enhancements
+**Cloud inference**
 
-Guided “summary preference” step before generating executive summary
+```bash
+export LLM_BACKEND=openai
+export OPENAI_API_KEY=your_key_here
+```
 
-Persona-based analysis (Banker, VC, Operator, Lawyer, etc.)
+---
 
-Section-by-section reconstruction for structured documents
+## 📌 Current Status
 
-Multi-document comparison (e.g., Q1 → Q2 drift)
+* Core functionality complete and working end-to-end
+* Focused on correctness, structure, and user intent
+* Designed to evolve toward:
 
-Future Extensions
+  * Section-based retrieval (agentic RAG)
+  * Citations and provenance
+  * More opinionated, inference-first UX modes
 
-User libraries & historical analysis
+---
 
-Competitive benchmarks (e.g., peers in the same industry)
+## 🚧 Scope Boundary
 
-Financial metric extraction & normalization
+This project focuses on solving **alignment, structure, and user intent definition** for long-document summarization.
 
-Auto-generated charts from financial tables
+Advanced capabilities such as full agentic retrieval, citation grounding, multimodal table understanding, and automated evaluation are intentionally treated as *extensions*, not shortcuts. This keeps the core system debuggable, interpretable, and product-aligned.
+
+---
+
+## 🧭 Future Improvements
+
+* Retrieval-per-section (agentic RAG loop)
+* Page-level citations and references
+* Table and chart understanding
+* Evaluation and consistency checks
+* Further UX simplification for non-technical users
+
+---
+
+## 👤 Author
+
+**Ayush Tiwari**
+
+Built as a full-stack, LLM-heavy systems project with a strong emphasis on:
+
+* Ambiguity-driven product design
+* Long-document reasoning constraints
+* Practical trade-offs between UX simplicity and model controllability
+
+This project demonstrates how AI/ML engineers can move beyond demos toward **production-oriented document intelligence systems**.
+
+---
+
+## 📄 License
+
+This project is intended for learning, experimentation, and demonstration purposes.
